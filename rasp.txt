@@ -1,0 +1,78 @@
+import cv2
+import io
+import struct
+import time
+import pickle
+import zlib
+import json
+import requests
+import base64
+import os
+import RPi.GPIO as GPIO
+import time
+from PIL import Image
+# from gpiozero import LED
+GPIO.setmode(GPIO.BOARD)
+GPIO.setwarnings(False)
+GPIO.setup(11,GPIO.OUT)
+servo1 = GPIO.PWM(11,50)
+while True:
+    try:
+        
+        # ledgreen=LED(26)
+        # ledred=LED(19)
+        isKnown=False
+        start=0
+        boolProcess=False
+        # ledred.on()
+        error_handler=""
+    except:
+        print("Something wrong with leds")
+    try:
+        cam = cv2.VideoCapture(0)
+        cam.set(3, 640);
+        cam.set(4, 480);
+        person_id=""
+    except:
+        print("Something wrong with Camera initialization")
+    while cam.isOpened():
+        ret, frame = cam.read()
+        if ret:
+                #mgPath = ('asd.jpg')
+                #im=Image.open(mgPath)
+                #image_string = base64.b64encode(im)
+                frame = cv2.imencode('.jpg', frame)[1]
+                # print(frame.tostring
+                frame=base64.b64encode(frame)
+                data = {"image" : frame}
+                r1=requests.post(url="https://1fe623a8.ngrok.io/upload",data=data)
+                # print(r1.text)
+                print(r1.text)
+                data=r1.json()
+                try:
+                    status=data['success']
+                    error_handler=data['message']
+                    print(status)
+                    print(error_handler)
+                except(IndexError,KeyError):
+                    print("Something wrong")
+                    boolProcess=True
+                if (status):
+                    servo1.start(0)
+                    print ("Waiting for second")
+                    time.sleep(1)
+                    duty = 2
+                    # Loop for duty values from 2 to 12 (0 to 180 degrees)
+                    # Turn back to 90 degrees
+                    print ("Turning to 90 degrees for 10 seconds")
+                    servo1.ChangeDutyCycle(6.5)
+                    time.sleep(10)
+                    print ("Turning back to 0 degrees")
+                    servo1.ChangeDutyCycle(2.5)
+                    time.sleep(0.5)
+                    servo1.ChangeDutyCycle(0)
+                    servo1.stop()
+                    GPIO.cleanup()
+                status=""
+                person_id=""
+        cam.release()
